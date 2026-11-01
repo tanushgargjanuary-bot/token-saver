@@ -2,13 +2,12 @@
 Project Scaffolder & Bootstrapper:
 Embeds the Active Session Ledger, Safe Git Push engine, and .gitignore into
 any existing or newly created project repository.
-Guarantees idempotency (avoids duplicate .bat files).
+Guarantees idempotency and keeps local helper scripts off public GitHub.
 """
 
 import os
 from pathlib import Path
 
-# Standard Bat Wrapper
 BAT_CONTENT = """@echo off
 :: ============================================================================
 :: UNIVERSAL SAFE GIT PUSH (DO NOT DUPLICATE THIS FILE)
@@ -26,9 +25,8 @@ pause
 endlocal
 """
 
-# Standard Safe Git Sync PowerShell Engine
 PS1_CONTENT = """# Universal Safe Git Sync Engine for tanushgargjanuary-bot projects
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $CurrentDir = Get-Location
 $ProjectName = (Get-Item -Path $CurrentDir).Name
 $DefaultUsername = "tanushgargjanuary-bot"
@@ -58,7 +56,12 @@ if (-not (Test-Path (Join-Path $CurrentDir ".git"))) {
 }
 git branch -M main 2>$null
 
-# 3. Remote Resolution
+# 3. Untrack local convenience scripts so they NEVER get pushed to GitHub
+git rm --cached push_to_github.bat 2>$null | Out-Null
+git rm --cached push_to_github.ps1 2>$null | Out-Null
+git rm --cached git_sync.ps1 2>$null | Out-Null
+
+# 4. Remote Resolution
 $TargetRemote = ""
 try { $TargetRemote = (git remote get-url origin 2>$null).Trim() } catch {}
 if (-not $TargetRemote) {
@@ -68,24 +71,26 @@ if (-not $TargetRemote) {
     Write-Host "[*] Inferred remote: $TargetRemote" -ForegroundColor Cyan
 }
 
-# 4. Stage & Commit
+# 5. Stage & Commit
 git add .
 $status = git status --porcelain
 if ($status) {
-    $msg = "Sync: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $ProjectName"
+    $msg = "Clean sync: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $ProjectName"
     git commit -m $msg | Out-Null
-    Write-Host "[+] Committed local changes." -ForegroundColor Green
+    Write-Host "[+] Committed clean source code." -ForegroundColor Green
 }
 
-# 5. Push safely
+# 6. Push safely
 Write-Host "[*] Pushing to GitHub ($TargetRemote)..." -ForegroundColor Cyan
-git push -u origin main 2>&1 | Out-Null
+git push -u origin main
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[*] Remote has placeholder commit. Aligning initial branch..." -ForegroundColor Yellow
     git push -u origin main --force
 }
 
-Write-Host "`n[SUCCESS] Project is live at: $TargetRemote" -ForegroundColor Green
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "`n[SUCCESS] Project is cleanly live at: $TargetRemote" -ForegroundColor Green
+}
+exit 0
 """
 
 GITIGNORE_CONTENT = """# Environments & Secrets
@@ -98,7 +103,7 @@ id_rsa
 *secret*
 *credentials*
 
-# Language Runtimes
+# Language Runtimes & Packaging
 __pycache__/
 *.py[cod]
 .venv/
@@ -108,11 +113,20 @@ dist/
 build/
 *.egg-info/
 
-# IDE & System
+# IDE & OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Dynamic Session Logs (local development)
+.session.log
+
+# Local Convenience Scripts (DO NOT UPLOAD TO GITHUB)
+push_to_github.bat
+push_to_github.ps1
+git_sync.ps1
+*.bat
 """
 
 
@@ -167,4 +181,3 @@ class ProjectScaffolder:
             print("[+] Created starter README.md")
 
         print(f"\n[DONE] Project '{name}' is fully scaffolded and protected!")
-
