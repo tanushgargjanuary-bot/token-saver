@@ -1,32 +1,31 @@
 """
 Session Ledger CLI:
 A developer command-line utility to record, update, inspect, and export
-compressed, lossless session logs for any coding project.
-
-Usage:
-  session-log init
-  session-log record --type DECISION --target "Database" --details "Using PostgreSQL with asyncpg"
-  session-log record-code --file src/models.py --details "Created User model"
-  session-log dump
-  session-log prompt
+compressed, lossless session logs for any coding project, as well as scaffold
+new projects with universal safe git sync.
 """
 
 import sys
 import argparse
-import os
 from pathlib import Path
 from .session_ledger import SessionLedger
+from .project_scaffolder import ProjectScaffolder
 
 LEDGER_FILENAME = ".session.log"
 
 
-def load_or_create_ledger(base_dir: Path) -> Tuple[SessionLedger, Path]:
-    ledger_path = base_dir / LEDGER_FILENAME
-    ledger = SessionLedger()
+def cmd_new(args):
+    project_name = args.name
+    base_dir = Path(".").resolve()
+    target_dir = base_dir / project_name
+    print(f"[*] Scaffolding new project: {project_name} at {target_dir}")
+    ProjectScaffolder.scaffold_project(target_dir, project_name=project_name)
 
-    # If an existing ledger exists, we can append or restore
-    # For now, it initializes in memory and syncs to disk
-    return ledger, ledger_path
+
+def cmd_scaffold(args):
+    target_dir = Path(args.dir or ".").resolve()
+    print(f"[*] Bootstrapping existing directory: {target_dir}")
+    ProjectScaffolder.scaffold_project(target_dir)
 
 
 def cmd_init(args):
@@ -53,19 +52,12 @@ def cmd_record(args):
     ledger_path = target_dir / LEDGER_FILENAME
 
     ledger = SessionLedger()
-    # Read existing if available
-    existing_content = ""
-    if ledger_path.exists():
-        with open(ledger_path, "r", encoding="utf-8") as f:
-            existing_content = f.read()
-
     ref = ledger.record_event(
         event_type=args.type,
         target=args.target,
         details=args.details
     )
 
-    # Append to ledger file
     with open(ledger_path, "a", encoding="utf-8") as f:
         f.write(f"\n[{args.type.upper()}] {args.target} -> {args.details}")
 
@@ -133,10 +125,19 @@ def cmd_prompt(args):
 def main():
     parser = argparse.ArgumentParser(
         prog="session-log",
-        description="Active Session Ledger: High-precision, compressed memory logs for AI coding workflows."
+        description="Active Session Ledger & Universal Safe Project Scaffolder."
     )
     parser.add_argument("--dir", default=".", help="Project root directory (default: current directory)")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # new project
+    p_new = subparsers.add_parser("new", help="Create and scaffold a brand new project with session log and git sync")
+    p_new.add_argument("name", help="Name of the new project directory")
+    p_new.set_defaults(func=cmd_new)
+
+    # scaffold existing
+    p_scaffold = subparsers.add_parser("scaffold", help="Add session log and safe git sync to an existing project")
+    p_scaffold.set_defaults(func=cmd_scaffold)
 
     # init
     p_init = subparsers.add_parser("init", help="Initialize a .session.log in the project root")
@@ -172,4 +173,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
