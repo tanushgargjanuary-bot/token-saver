@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "token-saver"
+version = "1.0.0"
+description = "Dual-Mode Token Optimizer & Active Session Ledger for AI Coding Workflows"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Tanush Garg"}
+]
+keywords = [
+    "llm", "token-optimization", "session-ledger", "prompt-compression",
+    "coding-agents", "bpe", "ast-skeletonizer", "prompt-caching"
+]
+
+[project.scripts]
+session-log = "token_saver.session_cli:main"
+

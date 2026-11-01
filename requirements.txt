@@ -1,0 +1,4 @@
+# TokenSaver Dependencies
+# Pure standard library by default, optional libraries for exact token counts
+tiktoken>=0.7.0; python_version >= "3.8"
+
