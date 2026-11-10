@@ -376,3 +376,5 @@ python -m unittest discover tests
 
 Distributed under the **MIT License**. Free for open-source and commercial software development.  
 See [`LICENSE`](LICENSE) for complete details.
+
+<!-- CodeRabbit review trigger -->
